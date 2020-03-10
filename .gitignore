@@ -1,0 +1,7 @@
+# Ignore files that contains the following regular expressions
+*hw*
+**/*hw*
+*homework*
+**/*homework*
+*HW*
+**/*HW*
