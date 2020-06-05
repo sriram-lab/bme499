@@ -1,5 +1,7 @@
 # Neural networks
+
 @author:      Scott Campit
+
 Last updated: April 14, 2020
 
 This folder contains MATLAB files and media for the BME499 Neural Network lectures.
