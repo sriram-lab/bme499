@@ -5,7 +5,9 @@
 Last updated: April 14, 2020
 
 This folder contains MATLAB files and media for the BME499 Neural Network lectures.
-** Neural Networks Directory **
+
+**Neural Networks Directory**
+
 ```bash
 ./
 |__bin
@@ -21,11 +23,6 @@ This folder contains MATLAB files and media for the BME499 Neural Network lectur
 |   |__ age_metabolomics.xlsx
 |   |__ cleveland.xlsx
 |   |__ gbm.mat
-|__mp4
-|   |__ NN1_LR.mp4
-|   |__ NN2_SNN.mp4
-|   |__ NN3_DLT.mp4
-|   |__ NN4_Optimize.mp4
 |__tutorial
 |   |__ html.zip
 |   |     |__ NN1_logistic.html
