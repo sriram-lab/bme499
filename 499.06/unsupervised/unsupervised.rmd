@@ -1,7 +1,7 @@
 ---
 title: "Introduction to Unsupervised Learning"
 author: "Dr. Sriram Chandrasekaran and Joshua Sodicoff"
-date: "10/21/2020"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
 output: html_document
 ---
 
@@ -10,10 +10,10 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r setup_visible, results = "hide", message = FALSE, warning = FALSE}
-library(ggplot2) #a popular plotting library
-library(ggrepel) #an extension on ggplot2 for 
-library(cluster) #a utility for clustering techniques, which contains the silhouette function
-library(readxl) #a utility for reading excel files
+library(ggplot2) # a popular plotting library
+library(ggrepel) # an extension on ggplot2 for 
+library(cluster) # a utility for clustering techniques (e.g. silhouette function)
+library(readxl) # a utility for reading excel files
 ```
 
 **Unsupervised learning** refers to a machine learning algorithm that infers information from a given dataset without any guidance. The algorithm relies on *underlying similarities and patterns* within the data to learn how the variables are related to one another. So in a way, we're "letting the data speak for itself."
@@ -25,37 +25,40 @@ This is a great tool to use for initial exploration of a dataset without any def
 # Clustering
 #### Identifying distinct groups based on similarity
 
-We'll be covering two types of clustering techniques: hierarchical and k-means clustering. To introduce these methods, we'll consider the following planetary data:
+We'll be covering two types of clustering techniques: **hierarchical** and **k-means** clustering. To introduce these methods, we'll consider the following planetary data:
 
 ```{r planet_plot}
-planet_data = read.csv("planets.csv") #reading in the planet data
+planet_data = read.csv("planets.csv") # reading in the planet data
 planet_data
-colnames(planet_data) = c("name", "density","rad") #setting new, simpler column names
+colnames(planet_data) = c("name", "density","rad") # setting new, simpler column names
 planet_plot = ggplot(planet_data, aes(x = density, y = rad, label = name)) +
   geom_point(size = 5) + geom_label_repel(aes(label = name)) + 
-  ggtitle("Radius and Average Density of Planets")+
-  xlab("Density (g/cm^3)")+
-  ylab("Radius (km)")
-planet_plot
+  ggtitle("Radius and Average Density of Planets") +
+  xlab("Density (g/cm^3)") + ylab("Radius (km)")
+planet_plot # visualizing data
 ```
 
 ## Hierarchical Clustering
 
 In **hierarchical clustering**, each observation starts in its own cluster at the base of the hierarchy. As we move up the hierarchy, observations that are most similar group together first until all observations are linked. 
 
-This hierarchy of observations is often depicted as a **dendrogram**. In R, we can also generate on using the `heatmap` function to visualize how similar the observations (e.g. planets) are based on different measurements (e.g. density, radius). The plot below shows an example of hierarchical clustering of planets in the solar system based on their average density and radius: 
+This hierarchy of observations is often depicted as a **dendrogram**. In R, we can generate one using the `heatmap` function to visualize how similar the observations (e.g. planets) are based on different measurements (e.g. density, radius). The plot below shows an example of hierarchical clustering of planets in the solar system based on their average density and radius: 
 
 ```{r hierarchical_clustering}
-numeric_planet_data = as.matrix(planet_data[,c("density","rad")]) #subset the data frame to only the numeric values
+# subset the data frame to only the numeric values
+numeric_planet_data = as.matrix(planet_data[,c("density","rad")]) 
+
+# visualize data after hierarchical clustering
 heatmap(numeric_planet_data, Colv=F, scale='none',
         labCol = c("Density (g/cm^3)", "Radius (km)"),
         labRow = planet_data[,1],
         xlab = "Measurment", ylab = "Planet", cexCol = .6)
 ```
 
-You may have noticed that the radius column doesn't show any differences between planets. This is because the range of values represented by the color gradient is limited to 1 through 7 (recall that planet radius was in the 10,000 range). To have a better visual sense in how a metric (e.g. radius) differs between observations (e.g. planets), we can scale the values within a metric by setting `scale = "col"`. Below is what the same clustergram of planetary data would look like with standardized density and radius: 
+You may have noticed that the radius column doesn't show any differences between planets. This is because the range of values represented by the color gradient is limited to 1 through 7 (recall that planet radius was in the 10,000 range). To have a better visual sense in how a metric (e.g. radius) differs between observations (e.g. planets), we can scale the values within a metric by setting `scale = "col"`. Below is what the same clustergram of planetary data would look like with scaled density and radius: 
 
 ```{r standardized_hierarchical_clustering}
+# standardize columns
 heatmap(numeric_planet_data, Colv=F, scale = "col",
         labCol = c("Density (g/cm^3)", "Radius (km)"),
         labRow = planet_data[,1],
@@ -77,7 +80,7 @@ This is what the distance between p and q would look like when n = 2
 
 ![](dist_p_q.png)
 
-When analyzing biological data in R, we'll mostly be dealing with large vectors. In these cases, let n be equal to the length of the vectors we're comparing (note: the vectors must have the same length). 
+When analyzing biological data in R, we'll mostly be dealing with large vectors. In these cases, n is equal to the length of the vectors we're comparing (*note*: the vectors must have the same length). 
 
 For instance, let's say we're comparing vectors a and b as defined below:
 
@@ -89,72 +92,72 @@ b = c(5,8,4,8)
 For this example, n = 4. We can calculate the Euclidean distance manually: 
 
 ```{r manual_euclid}
-vector_diff = a-b
+vector_diff = a - b
 square_diff = vector_diff^2
 sum_square_diff = sum(square_diff)
 euclid = sqrt(sum_square_diff)
 euclid
 ```
 
-We can also use the `norm` function
+We can also use the `norm` function in R: 
 
 ```{r norm_dist}
 euclid = norm(vector_diff, type = "2")
 euclid
 ```
 
-Where `type = "2"` refers to the L2 norm.
+Where `type = "2"` refers to the L2 norm (another way to refer to the Euclidean distance).
 
-## Correlation Distance
+### Correlation Distance
 
 Another commonly used distance metric is **correlation**, and this is broadly defined as follows: 
 
 ![](corr_dist.png)
 
-where r is the correlation coefficient between two vectors. 
+where r is the *correlation coefficient* between two vectors. 
 
-Going back to our example vectors a and b, the correlation distance can be calculated manually:
+Going back to our example vectors a and b, the correlation distance can be calculated manually using the `cor` function:
 
 ```{r correlation_distance}
-correlation_distance = 1-cor(a,b)
+correlation_distance = 1 - cor(a,b)
+correlation_distance
 ```
 
 Note that the correlation distance can only range from 0 (similar) to 2 (dissimilar). 
 
-`cor` has an additional `method` parameter, which results in the use of `pearson`(default), `kendall` and `spearman` correlation
+`cor` has an additional `method` parameter, which specifies which method to use when calculating the correlation. Available options include `pearson`(default), `spearman` and `kendall` correlation.
 
 ## K-means Clustering
 
-For **k-means clustering**, we specify how many distinct groups we think that the data will cluster into. K-means clustering then allocates data points to a cluster by minimizing the in-cluster sum of squares (more on this later). The value for k is typically chosen based on a priori information we may have on the data. Referring back to our planetary data:
+For **k-means clustering**, we specify how many distinct groups we think that the data will cluster into. The algorithm then allocates data points to a cluster by minimizing the *in-cluster sum of squares* (more on this later). The value for k is typically chosen based on a priori information we may have on the data. Referring back to our planetary data, planets in the solar system can be defined as [gas giants or rocky planets](http://history.amazingspace.org/resources/organizers/rock_v_gasplanets.php):
 
 ```{r plant_plot_split}
 planet_plot + 
-  geom_vline(xintercept=2, linetype="dashed", color = "red") +
-  geom_text(label = "Gas giants", x = 1.5, y = 40000, color = "red") +
+  geom_vline(xintercept=2, linetype="dashed", color = "black") +
+  geom_text(label = "Gas giants", x = 1, y = 40000, color = "red") +
   geom_text(label = "Rocky planets", x = 4, y = 40000, color = "blue")
 ```
 Based on this additional information, we could apply k-means clustering with k = 2 to group our planets: 
 
 ```{r planet_kmeans}
-k_2_idents = kmeans(numeric_planet_data, centers = 2) #run k means on the numeric planet data
-idents = as.factor(k_2_idents[["cluster"]]) #extract the cluster info from the output and convert to a categorical variable
-planet_data = cbind(planet_data, idents = idents) #adds an additional column to planet_data with the clustering generated by kmeans
-ggplot(planet_data, aes(x = density, y = rad, label = name, color = idents)) +
+k_2_idents = kmeans(numeric_planet_data, centers = 2) # run k-means with k = 2
+idents_2 = as.factor(k_2_idents[["cluster"]]) # convert output to categorical variable
+planet_data$idents_2 = idents_2 # add clustering info to planet_data
+ggplot(planet_data, aes(x = density, y = rad, label = name, color = idents_2)) +
   geom_point(size = 5) + geom_label_repel(aes(label = name)) + 
   ggtitle("Radius and Average Density of Planets") +
-  xlab("Density (g/cm^3)") +
-  ylab("Radius (km)") +
+  xlab("Density (g/cm^3)") + ylab("Radius (km)") +
   theme(legend.position = "none")
 ```
 
-This is probably not how we expected the planets to cluster based on our reason to use k = 2. However, if we delve deeper into the information we were given before: 
+This is probably not how we expected the planets to cluster based on our reason to use k = 2. However, if we [delve deeper](http://www.solstation.com/stars/jovians.htm) into the information we were given before: 
 
 ```{r plant_plot_split_3}
 planet_plot + 
-  geom_vline(xintercept=2, linetype="dashed", color = "red") +
-  geom_hline(yintercept = 40000, linetype="dashed", color = "red") +
-  geom_text(label = "Gas giants", x = 1.5, y = 50000, color = "red") +
-  geom_text(label = "Ice giants", x = 1.75, y = 35000, color = "purple") +
+  geom_vline(xintercept=2, linetype="dashed", color = "black") +
+  geom_hline(yintercept = 40000, linetype="dashed", color = "black") +
+  geom_text(label = "Gas giants", x = 1, y = 50000, color = "red") +
+  geom_text(label = "Ice giants", x = 1, y = 10000, color = "purple") +
   geom_text(label = "Rocky planets", x = 4, y = 30000, color = "blue")
 ```
 
@@ -162,8 +165,8 @@ Let's see how the planets cluster based on k-means clustering with k = 3:
 
 ```{r planet_kmeans_3}
 k_3_idents = kmeans(as.matrix(planet_data[,2:3]), centers = 3, nstart=25)
-idents = as.factor(k_3_idents[["cluster"]]) #extract the cluster info from the output and convert to a categorical variable
-planet_data = cbind(planet_data, idents_3 = idents) #adds an additional column to planet_data with the clustering generated by kmeans
+idents_3 = as.factor(k_3_idents[["cluster"]]) 
+planet_data$idents_3 = idents_3 #adds an additional column to planet_data with the clustering generated by kmeans
 ggplot(planet_data, aes(x = density, y = rad, label = name, color = idents_3)) +
   geom_point(size = 5) + geom_label_repel(aes(label = name)) + 
   ggtitle("Radius and Average Density of Planets") +
@@ -174,38 +177,45 @@ ggplot(planet_data, aes(x = density, y = rad, label = name, color = idents_3)) +
 
 Now our results match what we expected based on our reason to use k = 3.
 
-## Silhouette Analysis
+### Silhouette Analysis
 
 You must be wondering: what if we don't have any prior knowledge of the data? What value do we use for k, and how do we know if this was a good choice? To consider these questions, we can conduct a **silhouette analysis** to determine which k value best minimizes the in-cluster sum of squares. For this analysis, we calculate the silhouette value for each observation and assess how they compare within a cluster by generating a **silhouette plot**. *The silhouette value measures how similar an observation is to its own cluster compared to others based on a distance metric*. This value ranges from -1 to 1, where a higher positive value implies that an observation is well-matched to its cluster and vice-versa. 
 
-One way to assess whether we chose a good value for k is to evaluate the mean of all silhouette values. For the purposes of this lesson, we'll refer to this mean value as the silhouette score. In general, a **silhouette score** above 0.5 indicates that the data is well separated. The following code calculates the silhouette score for our planetary data based on k-means clustering with different k values and visualizes the clustered data: 
+One way to assess whether we chose a good value for k is to evaluate the mean of all silhouette values. For the purposes of this lesson, we'll refer to this mean value as the silhouette score. In general, a **silhouette score** above 0.5 indicates that the data is well-separated. The following code calculates the silhouette score for our planetary data based on k-means clustering with different k values and visualizes the clustered data: 
 
 ```{r silhouette_plot}
+# compute distance (Euclidean) between planets
 dist_planets = dist(numeric_planet_data)
 
-silhouette_score <- unlist(lapply(2:5, function(k){
-  k_means <- kmeans(numeric_planet_data, centers = k, nstart=25) #run kmeans for a given value of k
-  silhouette_out <- silhouette(k_means$cluster, dist_planets) #generate silhouette scores for the given clustering
-  sil_mat = matrix(silhouette_out,ncol = 3) #converts the output of the silhouette function into a matrix
-  sil_mat = sil_mat[,3] #subsets the matrix to the silhouette scores
-  return(mean(sil_mat)) #returns the mean silhouette score
+# define a function to determine the silhouette score
+k1 = 2; k2 = 5 # define k range as [k1, k2]
+silhouette_score <- unlist(lapply(k1:k2, function(k){
+  k_means <- kmeans(numeric_planet_data, centers = k, nstart=25) # run kmeans for a given value of k
+  silhouette_out <- silhouette(k_means$cluster, dist_planets) # generate silhouette values for each cluster
+  sil_mat = matrix(silhouette_out,ncol = 3) # converts the output of the silhouette function into a matrix
+  sil_mat = sil_mat[,3] # subsets the matrix to the silhouette scores
+  return(mean(sil_mat)) # returns the mean of slihouette values (silhouette score)
 }))
-silhouette_df = data.frame(clusts = as.factor(2:5), score = silhouette_score) #creates a data frame with values of k and their associated silhouette scores
-ggplot(silhouette_df, aes(x = clusts, y = score, fill = clusts)) +
+
+# create a data frame with values of k and their associated silhouette scores
+silhouette_df = data.frame(clusts = as.factor(k1:k2), score = silhouette_score) 
+
+# visualize how the silhouette score changes with k
+ggplot(silhouette_df, aes(x = clusts, y = score)) +
   geom_bar(stat = "identity") +
-  ggtitle("Silhouette scores for k = 2 to 5") +
-  xlab("Cluster")+
-  ylab("Score") + 
+  ggtitle(sprintf("Silhouette scores for k range of %d to %d", k1, k2)) +
+  xlab("k") + ylab("Silhouette Score") + 
   theme(legend.position = "none")
 ```
 
-*Note*: As the placement of cluster centroid is random for every iteration, clustering results may fluctuate for different iterations. The `kmeans` function contains additional properties that can be used to address this problem. To easily increase the stability, increase the `nstart` parameter above 1.
+*Note*: As the placement of a cluster centroid is random for every iteration, clustering results may fluctuate between runs. The `kmeans` function contains additional properties that can be used to address this problem. To easily increase the stability, increase the `nstart` parameter to a value above 1.
 
 ## Hierarchical vs. K-means Clustering
 
-Both hierarchical clustering and k-means clustering are unsupervised learning methods for grouping data based on similarity. The difference between these two clustering methods is that hierarchical clustering takes a *"bottom-up" approach*, whereas k-means clustering takes a *"top-down" approach*.
+Both hierarchical clustering and k-means clustering are unsupervised learning methods for grouping data based on similarity. The difference between these two clustering methods is that hierarchical clustering takes a **"bottom-up" approach**, whereas k-means clustering takes a **"top-down" approach**.
 
-In R, we can perform hierarchical clustering using the `hclust` function, and k-means clustering using the `kmeans` function. The `silhouette` function is used to calculate the silhouette value for each observation based on its cluster assignment from k-means clust
+### Section Summary
+In R, we can perform hierarchical clustering using the `hclust` function, and k-means clustering using the `kmeans` function. The `silhouette` function is used to calculate the silhouette value for each observation based on its cluster assignment from k-means clustering.
 
 # In-class practice: clustering of the Framingham data
 #### Applying hierarchical clustering based on health measurements
