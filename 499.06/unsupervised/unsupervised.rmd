@@ -142,9 +142,9 @@ For **k-means clustering**, we specify how many distinct groups we think that th
 
 ```{r plant_plot_split}
 planet_plot + 
-  geom_vline(xintercept=2, linetype="dashed", color = "black") +
-  geom_text(label = "Gas giants", x = 1, y = 40000, color = "red") +
-  geom_text(label = "Rocky planets", x = 4, y = 40000, color = "blue")
+  geom_vline(xintercept=3, linetype="dashed", color = "black") +
+  geom_text(label = "Gas giants", x = 1.5, y = 40000, color = "red") +
+  geom_text(label = "Rocky planets", x = 4.5, y = 40000, color = "blue")
 ```
 Based on this additional information, we could apply k-means clustering with k = 2 to group our planets: 
 
@@ -163,11 +163,11 @@ This is probably not how we expected the planets to cluster based on our reason 
 
 ```{r plant_plot_split_3}
 planet_plot + 
-  geom_vline(xintercept=2, linetype="dashed", color = "black") +
+  geom_vline(xintercept=3, linetype="dashed", color = "black") +
   geom_hline(yintercept = 40000, linetype="dashed", color = "black") +
-  geom_text(label = "Gas giants", x = 1, y = 50000, color = "red") +
-  geom_text(label = "Ice giants", x = 1, y = 10000, color = "purple") +
-  geom_text(label = "Rocky planets", x = 4, y = 30000, color = "blue")
+  geom_text(label = "Gas giants", x = 1.5, y = 50000, color = "red") +
+  geom_text(label = "Ice giants", x = 1.5, y = 10000, color = "purple") +
+  geom_text(label = "Rocky planets", x = 4.5, y = 30000, color = "blue")
 ```
 
 Let's see how the planets cluster based on k-means clustering with k = 3: 
