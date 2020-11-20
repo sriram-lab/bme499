@@ -201,12 +201,22 @@ One way to assess whether we chose a good value for k is to evaluate the mean of
 
 ```{r silhouette_score_function, include=FALSE}
 # define a function to determine the silhouette score
-silhouette_score <- function(k_list, num_data) {
+silhouette_score <- function(k_list, num_data, 
+                             dist_method="euclidean", cor_method="pearson") {
   unlist(lapply(k_list, function(k){
   # run kmeans for a given value of k
   k_means <- kmeans(num_data, centers = k, nstart=25) 
   # generate silhouette values for each cluster
-  silhouette_out <- silhouette(k_means$cluster, dist(num_data)) 
+  if (dist_method=="cor") {
+    dist_data <- as.dist(1 - cor(t(num_data), use = "pairwise.complete.obs",
+                                 method = cor_method))
+    silhouette_out <- silhouette(k_means$cluster, dist_data) 
+  }
+  else {
+    silhouette_out <- silhouette(k_means$cluster, 
+                                 dist(num_data, method=dist_method)) 
+  }
+  
   # convert the output of the silhouette function into a matrix
   sil_mat = matrix(silhouette_out,ncol = 3) 
   # subset the matrix to the silhouette scores
@@ -319,6 +329,7 @@ k1 = 2; k2 = 10 # define k range as [2, 10]
 # calculate silhouette scores for k range of interest
 silhouette_df = data.frame(clusts = as.factor(k1:k2), 
                            score = silhouette_score(k1:k2, fram_chol))
+
 ggplot(silhouette_df, aes(x = clusts, y = score)) +
   geom_bar(stat = "identity") +
   ggtitle(sprintf("Silhouette scores for k = %d to %d", k1, k2)) +
