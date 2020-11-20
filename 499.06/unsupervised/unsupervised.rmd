@@ -197,29 +197,32 @@ Now our results match what we expected based on our reason to use k = 3.
 
 You must be wondering: what if we don't have any prior knowledge of the data? What value do we use for k, and how do we know if this was a good choice? To consider these questions, we can conduct a **silhouette analysis** to determine which k value best minimizes the in-cluster sum of squares. For this analysis, we calculate the silhouette value for each observation and assess how they compare within a cluster by generating a **silhouette plot**. *The silhouette value measures how similar an observation is to its own cluster compared to others based on a distance metric*. This value ranges from -1 to 1, where a higher positive value implies that an observation is well-matched to its cluster and vice-versa. 
 
-One way to assess whether we chose a good value for k is to evaluate the mean of all silhouette values. For the purposes of this lesson, we'll refer to this mean value as the silhouette score. In general, a **silhouette score** above 0.5 indicates that the data is well-separated. The following code calculates the silhouette score for our planetary data based on k-means clustering with different k values and visualizes the clustered data: 
+One way to assess whether we chose a good value for k is to evaluate the mean of all silhouette values. For the purposes of this lesson, we'll refer to this mean value as the silhouette score. In general, a **silhouette score** above 0.5 indicates that the data is well-separated. The following code calculates the silhouette score (using `silhouette_score`) for our planetary data based on k-means clustering with different k values and visualizes the clustered data: 
 
-```{r silhouette_plot}
-# compute distance (Euclidean) between planets
-dist_planets = dist(numeric_planet_data)
-
+```{r silhouette_score_function, include=FALSE}
 # define a function to determine the silhouette score
-k1 = 2; k2 = 5 # define k range as [k1, k2]
-silhouette_score <- unlist(lapply(k1:k2, function(k){
+silhouette_score <- function(k_list, num_data) {
+  unlist(lapply(k_list, function(k){
   # run kmeans for a given value of k
-  k_means <- kmeans(numeric_planet_data, centers = k, nstart=25) 
+  k_means <- kmeans(num_data, centers = k, nstart=25) 
   # generate silhouette values for each cluster
-  silhouette_out <- silhouette(k_means$cluster, dist_planets) 
+  silhouette_out <- silhouette(k_means$cluster, dist(num_data)) 
   # convert the output of the silhouette function into a matrix
   sil_mat = matrix(silhouette_out,ncol = 3) 
   # subset the matrix to the silhouette scores
   sil_mat = sil_mat[,3] 
   # return the mean of slihouette values (silhouette score)
   return(mean(sil_mat)) 
-}))
+  }))
+}
+```
+
+```{r silhouette_plot}
+k1 = 2; k2 = 5 # define k range of interst as [k1, k2]
 
 # create a data frame with values of k and their associated silhouette scores
-silhouette_df = data.frame(clusts = as.factor(k1:k2), score = silhouette_score) 
+silhouette_df = data.frame(clusts = as.factor(k1:k2), 
+                           score = silhouette_score(k1:k2, numeric_planet_data))
 
 # visualize how the silhouette score changes with k
 ggplot(silhouette_df, aes(x = clusts, y = score)) +
@@ -311,15 +314,11 @@ fram_chol = fram_health[,c('HOSPMI','TOTCHOL','LDLC')]
 Let's assess the silhouette scores for k = 2 to k = 10: 
   
 ```{r k_means}
-df = as.data.frame(fram_chol) # convert to data frame
 k1 = 2; k2 = 10 # define k range as [2, 10]
-silhouette_score <- unlist(lapply(k1:k2, function(k){
-  k_means <- kmeans(df, centers = k, nstart=25)
-  silhouette_out <- silhouette(k_means$cluster, dist(df))
-  return(mean(matrix(silhouette_out,ncol = 3)[,3]))
-}))
 
-silhouette_df = data.frame(clusts = as.factor(k1:k2), score = silhouette_score)
+# calculate silhouette scores for k range of interest
+silhouette_df = data.frame(clusts = as.factor(k1:k2), 
+                           score = silhouette_score(k1:k2, fram_chol))
 ggplot(silhouette_df, aes(x = clusts, y = score)) +
   geom_bar(stat = "identity") +
   ggtitle(sprintf("Silhouette scores for k = %d to %d", k1, k2)) +
@@ -443,64 +442,30 @@ All of the methods discussed in this lesson serve as applications for **unsuperv
 
 ## R functions covered in this lesson:
 
-* `heatmap` - generates a heatmap with dendrograms for both rows and columns
-
-* `norm` - calculates vector and matrix norms, including the L2 norm (i.e. Euclidean distance)
-
-* `cor` - calculates the Pearson, Spearman, or Kendall correlation of two objects
-
-* `kmeans` - generates k clusters of the given samples using k-means
-
-* `silhouette` - calculate silhouette values based on k-means clustering
-
-* `prcomp` - runs PCA on a given numeric matrix
-
-* `read.csv` - loads data from an excel file
-
-* `colnames` - accesses the column names attribute of an object
-
-* `c` - collates all parameters into a list object
-
-* `as.matrix` - converts a given object into a matrix
-
-* `round` - returns the nearest whole number
-
-* `runif` - samples *a* values between *b* and *c* from a uniform distribution
-
-* `sum` - takes the sum of all values in a given object
-
-* `sqrt` - takes the square root of all values in a given object
-
-* `cbind` - binds column objects together
-
-* `unlist` - converts a list into a vector
-
-* `lapply` - runs a function on each element of a list
-
-* `dist` - calculates the distance between rows of a given object
-
-* `matrix` - creates a matrix from the given object
-
-* `data.frame` - generates a data frame, with each parameter as a column 
-
-* `as.data.frame` - converts the given object into a data frame
-
-* `apply` - runs a function on each row and/or column of a list
-
-* `is.na` - returns an object of conditionals representing if entries equal NA
-
-* `any` - returns `TRUE` if any values passed are `TRUE`
-
 * `!` - inverts the value of a conditionals
-
-* `levels` - accesses the level (i.e. categories) attribute of an object
-
-* `factor` - converts the object to a categorical variable
-
-* `ncol` - returns the number of columns in an object
-
-* `head` - displays the first several rows of an object
-
-* `t` - transposes the given object
-
+* `any` - returns `TRUE` if any values passed are `TRUE`
+* `apply` - runs a function on each row and/or column of a list
+* `as.data.frame` - converts the given object into a data frame
 * `as.dist` - converts the input to a distance matrix
+* `as.matrix` - converts a given object into a matrix
+* `c` - collates all parameters into a list object
+* `cbind` - binds column objects together
+* `colnames` - accesses the column names attribute of an object
+* `cor` - calculates the Pearson, Spearman, or Kendall correlation of two objects
+* `data.frame` - generates a data frame, with each parameter as a column 
+* `factor` - converts the object to a categorical variable
+* `head` - displays the first several rows of an object
+* `heatmap` - generates a heatmap with dendrograms for both rows and columns
+* `is.na` - returns an object of conditionals representing if entries equal NA
+* `kmeans` - generates k clusters of the given samples using k-means
+* `levels` - accesses the level (i.e. categories) attribute of an object
+* `ncol` - returns the number of columns in an object
+* `norm` - calculates vector and matrix norms, including the L2 norm (i.e. Euclidean distance)
+* `prcomp` - runs PCA on a given numeric matrix
+* `read.csv` - loads data from an excel file
+* `round` - returns the nearest whole number
+* `runif` - samples *a* values between *b* and *c* from a uniform distribution
+* `silhouette_score` - calculate silhouette scores given a range of k values and data (**note: custom function**)
+* `sqrt` - takes the square root of all values in a given object
+* `sum` - takes the sum of all values in a given object
+* `t` - transposes the given object
