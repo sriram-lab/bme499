@@ -11,6 +11,12 @@ output:
     highlight: zenburn
 ---
 
+```{r setup_packages, include=FALSE}
+# # define packages to install
+# pkg_list = c('ggplot2', 'readxl', 'rpart', 'randomForest') 
+# install.packages(pkg_list) # install packages
+```
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2) # a popular plotting library

@@ -16,7 +16,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r setup_packages, include=FALSE}
-# pkg_list = c('ggplot2', 'ggrepel', 'cluster', 'readxl') # define packages to install
+# # define packages to install
+# pkg_list = c('ggplot2', 'ggrepel', 'cluster', 'readxl') 
 # install.packages(pkg_list) # install packages
 ```
 
