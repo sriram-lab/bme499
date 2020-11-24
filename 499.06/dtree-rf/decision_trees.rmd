@@ -1,37 +1,47 @@
 ---
 title: "Decision Trees and Random Forest"
-author: "Joshua Sodicoff"
-date: "11/15/2020"
-output: html_document
+author: "BIOMEDE 499 - AI in BME"
+date: "Last modified: `r format(Sys.time(), '%B %d, %Y')`"
+output: 
+  html_document: 
+    toc: TRUE
+    toc_float: TRUE
+    number_sections: TRUE
+    theme: flatly
+    highlight: zenburn
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(ggplot2) #a popular plotting library
-library(readxl) #a utility for reading excel files
+library(ggplot2) # a popular plotting library
+library(readxl) # a utility for reading excel files
 ```
 
 # Decision Trees
 
-In this lesson, we will apply decision trees to the task of predicting patient health data from the Framingham dataset. To accomplish this, we will be using the `rpart` library, which implements classification and regresssion trees.
+In this lesson, we will apply decision trees to predict patient health outcome from the Framingham dataset. To accomplish this, we will be using the `rpart` library, which implements classification and regresssion trees.
 
-In this demonstration, we will attempt to predict occurance of diabetes. First, let's read in the Framingham dataset and remove rows with missing values. We will also subset out temporal variables for simplicity's sake.
+In this demonstration, we will attempt to predict the occurrence of diabetes. First, let's read in the Framingham dataset and remove rows with missing values. We will also subset out temporal variables for simplicity's sake.
 
 ```{r read_in}
 fram = readxl::read_excel("frmgham2.xls")
-missing_vals = apply(fram, MARGIN = 1, function(x){return(any(is.na(x)))}) #determines if any of the values are missing by row
-fram = fram[!missing_vals,1:31] #subsets to the rows without missing values, non time columns
-fram$DIABETES = as.factor(fram$DIABETES) #ensures the variable is categorical
+# identify rows missing any values
+missing_vals = apply(fram, MARGIN = 1, function(x){return(any(is.na(x)))}) 
+# extract rows without missing values and non-time columns
+fram = fram[!missing_vals,1:31] 
+# ensure output variable to be categorical
+fram$DIABETES = as.factor(fram$DIABETES) 
 ```
 
 To build the model, we use the `rpart` function, which takes a formula, a source data frame, and a method. The formula `DIABETES ~ .` represents diabetes a function of all other features. For classification, method should equal `"class"`.
 
 ```{r trees}
-library(rpart) #load rpart
-diab_model = rpart(DIABETES~.,data = fram, method = "class") #generate the model
+library(rpart) # load rpart
+# generate a classification model
+diab_model = rpart(DIABETES ~ ., data = fram, method = "class") 
 ```
 
-We can view details about the model, including relative error by number of splits, the importance of  variables, and information on the tree structure itself with the `summary` function.
+We can view details of our model, including the relative error by number of splits, the importance of variables, and information on the tree structure itself using the `summary` function.
 
 ```{r view_tree}
 summary(diab_model)
@@ -43,27 +53,27 @@ We can also read a brief description of the tree's structure with the `print` fu
 print(diab_model)
 ```
 
-Or we can view a visual representation of the tree by sequentially calling `plot` and `text`.
+Or we can generate a visual representation of the tree by sequentially calling `plot` and `text`.
 
 ```{r plot_tree, fig.width = 8, fig.height= 6}
-plot(diab_model)
-text(diab_model)
+plot(diab_model) # generate plot
+text(diab_model) # include text annotation
 ```
 
-#### Question
+## Question: Can you interpret the generated tree model? What do the interpolated splits tell you about diabetes occurance? Do the splits and leaves make sense?
 
-Can you interpret the generated tree model? What do the interpolated splits tell you about diabetes occurance? Do the splits and leaves make sense?
+<input type="text" id="answer" name="answer" size="100"/> 
 
-
-We may want to calculate the resubstitution error, which quantifies the accuracy of the model on the training data. Though there is not a built-in function to complete this, we can calculate it easily.
+We may want to calculate the **resubstitution error**, which *quantifies the accuracy of the model* on the training data. Though a built-in function is not provided, we can determine this easily as shown next.
 
 ```{r resub}
+# predict diabetes outcome using the model we built
 pred_diab = predict(diab_model, fram, type = "class")
-
-resub_error = 1 - sum(pred_diab == fram$DIABETES)/(length(pred_diab)) #equal to the fraction of predictions that are not equal
+# resutbstitution error = fraction of predictions that are not equal
+resub_error = mean(pred_diab != fram$DIABETES)
 resub_error
 ```
-To find cross validation error, we view the `cptable` element of the `diab_model` object. The `xerror` column refers to the cross validation error, run with a default value of 10.
+To find cross-validation error, we view the `cptable` element of the `diab_model` object. The `xerror` column refers to the cross-validation error (default k = 10).
 
 ```{r cross_val_built}
 diab_model[["cptable"]]
@@ -72,123 +82,131 @@ diab_model[["cptable"]]
 We can change the number of folds by passing the `part.control` function with its `xval` parameter equal to the number of folds to the `control` parameter of the `rpart` function. We'll touch on `control` soon.
 
 ```{r cross_val_param}
+# specify cross-validation fold to be 5
 control_args = rpart.control(xval = 5)
-diab_model_k_5 = rpart(DIABETES~.,data = fram, method = "class",
-                   control = control_args)
+diab_model_k_5 = rpart(DIABETES ~ ., data = fram, method = "class", 
+                       control = control_args)
 ```
 
 We can also (manually) calculate the cross-validation error.
 
 ```{r cross_val}
-K = 10 #determine the number of folds
-errors = c() #create a variable to store error values in
-folds = rep_len(1:K,nrow(fram)) #generate a vector matching samples to a fold
-folds = sample(folds,nrow(fram), replace = FALSE) #permute the original vector to retain equal counts but randomize the order
-for(k in 1:K){ #for each fold
-  model = rpart(DIABETES~.,data = fram[folds != k,], method = "class") #build the model using the subset of data outside of the fold
-  prediction = predict(model, fram[folds == k, ], type = "class") #predict the output for the fold
-  errors = c(errors, 1- sum(prediction == fram$DIABETES[folds == k])/(length(prediction)))
-  #calcuate the error
+K = 10 # define the number of folds
+errors = c() # create a variable to store error values in
+folds = rep_len(1:K, nrow(fram)) # generate a vector matching samples to a fold
+# permute the original vector to retain equal counts but randomize the order
+folds = sample(folds, nrow(fram), replace = FALSE) 
+for(k in 1:K){ # for each fold
+  # build the model using the subset of data outside of the fold
+  model = rpart(DIABETES ~ ., data = fram[folds != k,], method = "class") 
+  # predict the output for the fold
+  prediction = predict(model, fram[folds == k, ], type = "class") 
+  # calcuate the error
+  errors = c(errors, mean(prediction != fram$DIABETES[folds == k]))
 }
-mean(errors) #average the error across all folds
+mean(errors) # average error across all folds
 ```
 
-To prune the tree, we first want to determine the optimal complexity parameter. We can view a heuristic of complexity parameter versus cross-validation error with the `plotcp` function. The top x axis represents the `cp` value and the top is the number of leaves at that complexity.
+To prune the tree, we first want to determine the optimal complexity parameter. We can view a heuristic of complexity parameter versus cross-validation error with the `plotcp` function. The bottom x axis represents the `cp` value while the top shows the number of leaves at that complexity.
 
 ```{r plot_diab}
 plotcp(diab_model, upper = "size");
 ```
 
-#### Question
+## Question: Why might we choose a model that doesn't have the lowest error? In what cases would you expect a simpler model to have better performance?
 
-Why might we choose a model that doesn't have the lowest error? In what cases would you expect a simpler model to have better performance?
+<input type="text" id="answer" name="answer" size="100"/> 
 
-This plot demonstrates that the decrease in error slows when `cp = 0.017`. We then use the `prune` function.
+The plot above shows that the decrease in error is minimal past `cp = 0.017`. Based on this information, we could apply the `prune` function to prune our model at this cp value.
 
 ```{r prune}
 pruned_diab_model = prune(diab_model, cp = 0.017)
 ```
 
-We see that this new model makes decisions based off of three splits.
+We see that this new model makes decisions based off of three splits:
 
 ```{r plot_pruned_tree, fig.width=8, fig.height=6}
 plot(pruned_diab_model)
 text(pruned_diab_model)
 ```
 
-Finally, to assess the results of this model, let's generate a confusion matrix. There isn't a built-in function for this, but we can pretty easily compute the values for all conditions.
+Finally, to assess the results of this model, let's generate a confusion matrix. There isn't a built-in function for this, but we can easily compute the values for the two output labels (0 vs. 1) that we have.
 
 ```{r confusion_matrix}
 pred_diab_pruned = predict(pruned_diab_model, fram, type = "class")
-confusion_mat = matrix(c(sum(pred_diab_pruned == fram$DIABETES & pred_diab_pruned == 1), #true positive
-                         sum(pred_diab_pruned != fram$DIABETES & pred_diab_pruned == 1), #false positive
-                         sum(pred_diab_pruned != fram$DIABETES & pred_diab_pruned == 0), #false negative
-                         sum(pred_diab_pruned == fram$DIABETES & pred_diab_pruned == 0) #true negative
-                        ), nrow = 2)
+confusion_mat = matrix(c(
+  sum(pred_diab_pruned == fram$DIABETES & pred_diab_pruned == 1), # true positive
+  sum(pred_diab_pruned != fram$DIABETES & pred_diab_pruned == 1), # false positive
+  sum(pred_diab_pruned != fram$DIABETES & pred_diab_pruned == 0), # false negative
+  sum(pred_diab_pruned == fram$DIABETES & pred_diab_pruned == 0) # true negative 
+  ), nrow = 2)
 confusion_mat
 ```
 
 Let's also try this for the original model to compare the differences in predictions.
 
 ```{r confusion_matrix_2}
-confusion_mat = matrix(c(sum(pred_diab == fram$DIABETES & pred_diab == 1), #true positive
-                         sum(pred_diab != fram$DIABETES & pred_diab == 1), #false positive
-                         sum(pred_diab != fram$DIABETES & pred_diab == 0), #false negative
-                         sum(pred_diab == fram$DIABETES & pred_diab == 0) #true negative
-                        ), nrow = 2)
+confusion_mat = matrix(c(
+  sum(pred_diab == fram$DIABETES & pred_diab == 1), # true positive
+  sum(pred_diab != fram$DIABETES & pred_diab == 1), # false positive
+  sum(pred_diab != fram$DIABETES & pred_diab == 0), # false negative
+  sum(pred_diab == fram$DIABETES & pred_diab == 0) # true negative
+  ), nrow = 2)
 confusion_mat
 ```
 
-#### Note
+## Note
 
-When you grow a decision tree, consider its simplicity and predictive power. A deep tree with many leaves is usually highly accurate on the training data. However, the tree is not guaranteed to show a comparable accuracy on an independent test set. A leafy tree tends to overtrain (or overfit), and its test accuracy is often far less than its training (resubstitution) accuracy. In contrast, a shallow tree does not attain high training accuracy. But a shallow tree can be more robust — its training accuracy could be close to that of a representative test set. Also, a shallow tree is easy to interpret. If you do not have enough data for training and test, estimate tree accuracy by cross validation.
+When you grow a decision tree, consider its *simplicity* and *predictive power*. A deep tree with many leaves is usually highly accurate on the training data. However, the tree is not guaranteed to show a comparable accuracy on an independent test set. A leafy tree tends to **overtrain** (or overfit), and its test accuracy is often far less than its training (resubstitution) accuracy. In contrast, a shallow tree does not attain as high of a training accuracy. But a shallow tree can be more genralizable — its training accuracy could be close to that of a representative test set. Also, a shallow tree is easier to interpret. If you do not have enough data for training and testing, estimate tree accuracy by **cross-validation**.
 
 # Random Forest
 
 Now, let's try a similar task using a Random Forest model instead. The `randomForest` package implements the algorithm in R. 
 
-```{r rf_load, message=FALSE,warning=FALSE, results="hide"}
+```{r rf_load, message=FALSE, warning=FALSE, results="hide"}
 library(randomForest)
 ```
 
-We can then build the model using the `randomForest` function. For this example, we will predict occurance of stroke from the Framingham dataset.Note that the function attempts to infer if regression or classification should be completed, so the desired response variable should be converted to a factor before running the function.
+We can then build the model using the `randomForest` function. For this example, we will predict occurance of stroke from the Framingham dataset. Note that the function attempts to infer if regression or classification should be completed, so the desired response variable should be converted to a factor before running the function.
 
 ```{r rf}
 fram$STROKE = as.factor(fram$STROKE)
-stroke_model_rf = randomForest(STROKE~.,data = fram, importance = TRUE)
+stroke_model_rf = randomForest(STROKE ~ ., data = fram, importance = TRUE)
 ```
 
-The `randomForest` function also takes several hyperparameters, including
+The `randomForest` function also takes several hyperparameters, including:
 
-* `ntree` - the number of trees to include in the ensemble, default 500
-* `mtry` - the number of features to randomly use at each split, default the square root of the number of features
+* `ntree` - the number of trees to include in the ensemble (default = 500)
+* `mtry` - the number of features to randomly use at each split (default = sqrt(number of features))
 * `maxnodes` - the maximum number of leaves in a tree
 * `nodesize` - the minimum size of a leaf
 
-To get basic information about the model, use `print`.
+To gerate basic information about the model, use the `print` function:
 
 ```{r print_rf}
 print(stroke_model_rf)
 ```
 
-To determine the out of bag error of the model, we look at the final element in the `OOB` column of the `err.rate` element of the model object.
+To determine the **out-of-bag** (OOB) error of the model, we look at the final element in the `OOB` column of the `err.rate` element of the model object.
 
 ```{r oob_errr}
-stroke_model_rf$err.rate[500,"OOB"]
+stroke_model_rf$err.rate[500, "OOB"]
 ```
 
 Let's also assess the resubstitution error. Just like with `rpart`, we can pass our model as a parameter to the `predict` function.
 
 ```{r predict_rf}
 pred_stroke = predict(stroke_model_rf, fram)
-resub_error = 1 - sum(pred_stroke == fram$STROKE)/(length(pred_stroke)) #equal to the fraction of predictions that are not equal
+# fraction of predictions that are not equal to true label
+resub_error = mean(pred_stroke != fram$STROKE) 
 resub_error
 ```
 
-`randomForest` also determines the importance of features using both mean decrease in accuracy and mean decrease in Gini coefficient
+The `importance` function determines the importance of features using both mean decrease in **accuracy** and mean decrease in **Gini coefficient**: 
 
 ```{r importance}
-importance(stroke_model_rf)
+stroke_imp = as.data.frame(importance(stroke_model_rf))
+stroke_imp[order(stroke_imp$MeanDecreaseGini, decreasing=TRUE), ]
 ```
 
 This data is pretty helpful! We can also visualize importance with the `varImpPlot` function.
@@ -197,25 +215,25 @@ This data is pretty helpful! We can also visualize importance with the `varImpPl
 varImpPlot(stroke_model_rf)
 ```
 
-
 What if an ensemble needs more trees? We can use the `grow` function to add an arbitrary number of trees.
 
 ```{r grow}
-stroke_model_rf_1000 = grow(stroke_model_rf, 500)
+stroke_model_rf_500 = grow(stroke_model_rf, 500)
 ```
 
 Let's assess the accuracy of the expanded ensemble using a confusion matrix
 
 ```{r confusion_matrix_rf}
-pred_stroke_1000 = predict(stroke_model_rf_1000, fram, type = "class")
-confusion_mat = matrix(c(sum(pred_stroke_1000 == fram$STROKE & pred_stroke_1000 == 1), #true positive
-                         sum(pred_stroke_1000 != fram$STROKE & pred_stroke_1000 == 1), #false positive
-                         sum(pred_stroke_1000 != fram$STROKE & pred_stroke_1000 == 0), #false negative
-                         sum(pred_stroke_1000 == fram$STROKE & pred_stroke_1000 == 0) #true negative
-                        ), nrow = 2)
+pred_stroke_500 = predict(stroke_model_rf_500, fram, type = "class")
+confusion_mat = matrix(c(
+  sum(pred_stroke_500 == fram$STROKE & pred_stroke_500 == 1), # true positive
+  sum(pred_stroke_500 != fram$STROKE & pred_stroke_500 == 1), # false positive 
+  sum(pred_stroke_500 != fram$STROKE & pred_stroke_500 == 0), # false negative 
+  sum(pred_stroke_500 == fram$STROKE & pred_stroke_500 == 0) # true negative
+  ), nrow = 2)
 confusion_mat
 ```
 
-### Function glossary
-* `rep_len` - generates a vector with equal to the second parameter by repeating the first argument
+# Function glossary
 * `matrix` - converts the arguments into a matrix
+* `rep_len` - generates a vector with equal to the second parameter by repeating the first argument
