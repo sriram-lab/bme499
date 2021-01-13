@@ -52,12 +52,29 @@ We can view details of our model, including the relative error by number of spli
 ```{r view_tree}
 summary(diab_model)
 ```
+This returns a lot of information, including
+
+* the error for different tree complexities
+
+* scores for variable importance
+
+* information about each node
+
+  - the number of observations used to train the node
+  
+  - the probability a sample will be categorized by the node
+  
+  - the probability of the splits at the node if not a leaf
+
+To return subsets of this information, we can use other functions encapsulated in the package.
 
 We can also read a brief description of the tree's structure with the `print` function.
 
 ```{r print_tree}
 print(diab_model)
 ```
+
+It returns a nested list of splits, with information on the total number of samples used and categorized from the training data. This can be helpful for quickly assessing the evennessof splits.
 
 Or we can generate a visual representation of the tree by sequentially calling `plot` and `text`.
 
@@ -215,7 +232,10 @@ stroke_imp = as.data.frame(importance(stroke_model_rf))
 stroke_imp[order(stroke_imp$MeanDecreaseGini, decreasing=TRUE), ]
 ```
 
-This data is pretty helpful! We can also visualize importance with the `varImpPlot` function.
+The Gini Coefficient takes a value between 0 and 1 and measures both the accuracy and diffusion of classifications, with 0 representing perfect classification, 1 a perfectly random distribution. The algorithm used in `randomForest` minimizes the Gini Coefficient.
+
+
+We can also visualize importance with the `varImpPlot` function.
 
 ```{r var_imp, fig.width = 8, fig.height=6}
 varImpPlot(stroke_model_rf)
